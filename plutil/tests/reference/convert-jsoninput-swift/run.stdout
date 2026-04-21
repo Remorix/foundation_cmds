@@ -1,0 +1,23 @@
+/// Generated from valid.json
+let valid : [String : Any] = [
+        "count" : 42,
+        "flag" : true,
+        "items" : [
+            "head",
+    [
+        "sub" : "value",
+    ],
+            5,
+],
+        "name" : "Alice \"Q\" \\ slash",
+        "nested" : [
+    "a.b" : "dot",
+    "k" : "v",
+    "list" : [
+        "x",
+        7,
+        false,
+],
+],
+        "ratio" : 3.250000,
+    ]

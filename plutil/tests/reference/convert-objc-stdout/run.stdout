@@ -1,0 +1,2 @@
+complex.plist: invalid object in plist for destination format
+complex.plist contains an object that cannot be represented in Obj-C literal syntax

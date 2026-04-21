@@ -1,0 +1,63 @@
+No files specified.
+plutil: [command_option] [other_options] file...
+The file '-' means stdin
+Command options are (-lint is the default):
+ -help                         show this message and exit
+ -lint                         check the property list files for syntax errors
+ -convert fmt                  rewrite property list files in format
+                               fmt is one of: xml1 binary1 json swift objc
+                               note: objc can additionally create a header by adding -header
+ -insert keypath -type value   insert a value into the property list before writing it out
+                               keypath is a key-value coding key path, with one extension:
+                               a numerical path component applied to an array will act on the object at that index in the array
+                               or insert it into the array if the numerical path component is the last one in the key path
+                               type is one of: bool, integer, float, date, string, data, xml, json
+                               -bool: YES if passed "YES" or "true", otherwise NO
+                               -integer: any valid 64 bit integer
+                               -float: any valid 64 bit float
+                               -string: UTF8 encoded string
+                               -date: a date in XML property list format, not supported if outputting JSON
+                               -data: a base-64 encoded string
+                               -xml: an XML property list, useful for inserting compound values
+                               -json: a JSON fragment, useful for inserting compound values
+                               -dictionary: inserts an empty dictionary, does not use value
+                               -array: inserts an empty array, does not use value
+                               
+                               optionally, -append may be specified if the keypath references an array to append to the
+                               end of the array
+                               value YES, NO, a number, a date, or a base-64 encoded blob of data
+ -replace keypath -type value  same as -insert, but it will overwrite an existing value
+ -remove keypath               removes the value at 'keypath' from the property list before writing it out
+ -extract keypath fmt          outputs the value at 'keypath' in the property list as a new plist of type 'fmt'
+                               fmt is one of: xml1 binary1 json raw
+                               an additional "-expect type" option can be provided to test that
+                               the value at the specified keypath is of the specified "type", which
+                               can be one of: bool, integer, float, string, date, data, dictionary, array
+                               
+                               when fmt is raw: 
+                                   the following is printed to stdout for each value type:
+                                       bool: the string "true" or "false"
+                                       integer: the numeric value
+                                       float: the numeric value
+                                       string: as UTF8-encoded string
+                                       date: as RFC3339-encoded string in UTC timezone
+                                       data: as base64-encoded string
+                                       dictionary: each key on a new line
+                                       array: the count of items in the array
+                                   by default, the output is to stdout unless -o is specified
+ -type keypath                 outputs the type of the value at 'keypath' in the property list
+                               can be one of: bool, integer, float, string, date, data, dictionary, array
+ -create fmt                   creates an empty plist of the specified format
+                               file may be '-' for stdout
+ -p                            print property list in a human-readable fashion
+                               (not for machine parsing! this 'format' is not stable)
+There are some additional optional arguments that apply to the -convert, -insert, -remove, -replace, and -extract verbs:
+ -s                            be silent on success
+ -o path                       specify alternate file path name for result;
+                               the -o option is used with -convert, and is only
+                               useful with one file argument (last file overwrites);
+                               the path '-' means stdout
+ -e extension                  specify alternate extension for converted files
+ -r                            if writing JSON, output in human-readable form
+ -n                            prevent printing a terminating newline if it is not part of the format, such as with raw
+ --                            specifies that all further arguments are file names

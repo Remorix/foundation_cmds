@@ -1,0 +1,6 @@
+#import "-.h"
+
+/// Generated from -
+__attribute__((visibility("hidden")))
+NSDictionary * const _ = @{
+};

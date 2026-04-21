@@ -1,0 +1,25 @@
+/// Generated from complex.plist
+let complex : [String : Any] = [
+        "blob" : Data(bytes: [0x1,0x2,0x3,0x4,]),
+        "count" : 42,
+        "flag" : true,
+        "items" : [
+            "head",
+    [
+        "sub" : "value",
+    ],
+            5,
+],
+        "name" : "Alice \"Q\" \\ slash",
+        "nested" : [
+    "a.b" : "dot",
+    "k" : "v",
+    "list" : [
+        "x",
+        7,
+        false,
+],
+],
+        "ratio" : 3.250000,
+        "when" : Date(timeIntervalSinceReferenceDate: 725857445.000000),
+    ]

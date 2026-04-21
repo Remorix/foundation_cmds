@@ -5,8 +5,10 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 REPO_ROOT=$(CDPATH= cd -- "${SCRIPT_DIR}/.." && pwd)
 
-OURS=${OURS:-${REPO_ROOT}/build/host/plutil}
-SYS=${SYS:-/usr/bin/plutil}
+OURS=${OURS:-${REPO_ROOT}/plutil}
+SOURCE=${SOURCE:-}
+REFERENCE_DIR=${REFERENCE_DIR:-${SCRIPT_DIR}/reference}
+GENERATE_REFERENCE=${GENERATE_REFERENCE:-0}
 HOST_CC=${HOST_CC:-cc}
 ROOT=$(mktemp -d "${TMPDIR:-/tmp}/plutil-matrix.XXXXXX")
 FIX="${ROOT}/fixtures"
@@ -19,9 +21,9 @@ case "${OURS}" in
 *) OURS=${REPO_ROOT}/${OURS} ;;
 esac
 
-case "${SYS}" in
+case "${SOURCE}" in
 /*) ;;
-*) SYS=${REPO_ROOT}/${SYS} ;;
+*) SOURCE=${REPO_ROOT}/${SOURCE} ;;
 esac
 
 cleanup() {
@@ -32,14 +34,25 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-if [ ! -x "${SYS}" ]; then
-	printf 'missing system plutil: %s\n' "${SYS}" >&2
-	exit 1
-fi
-
-if [ ! -x "${OURS}" ]; then
-	printf 'missing built plutil: %s\n' "${OURS}" >&2
-	exit 1
+if [ "${GENERATE_REFERENCE}" = "1" ]; then
+	if [ -z "${SOURCE}" ]; then
+		printf 'missing reference source plutil\n' >&2
+		exit 1
+	fi
+	if [ ! -x "${SOURCE}" ]; then
+		printf 'missing reference source plutil: %s\n' "${SOURCE}" >&2
+		exit 1
+	fi
+	mkdir -p "${REFERENCE_DIR}"
+else
+	if [ ! -x "${OURS}" ]; then
+		printf 'missing built plutil: %s\n' "${OURS}" >&2
+		exit 1
+	fi
+	if [ ! -d "${REFERENCE_DIR}" ]; then
+		printf 'missing reference set: %s\n' "${REFERENCE_DIR}" >&2
+		exit 1
+	fi
 fi
 
 if ! command -v "${HOST_CC}" >/dev/null 2>&1; then
@@ -231,10 +244,17 @@ append_case_failure() {
 new_case() {
 	CASE_NAME=$1
 	CASE_DIR="${ROOT}/cases/${CASE_NAME}"
+	REF_CASE_DIR="${REFERENCE_DIR}/${CASE_NAME}"
+	RUN_DIR="${CASE_DIR}/run"
 	CASE_FAILURES=
-	mkdir -p "${CASE_DIR}/sys" "${CASE_DIR}/ours"
-	cp "${FIX}"/* "${CASE_DIR}/sys/"
-	cp "${FIX}"/* "${CASE_DIR}/ours/"
+	rm -rf "${CASE_DIR}"
+	mkdir -p "${RUN_DIR}"
+	cp "${FIX}"/* "${RUN_DIR}/"
+
+	if [ "${GENERATE_REFERENCE}" = "1" ]; then
+		rm -rf "${REF_CASE_DIR}"
+		mkdir -p "${REF_CASE_DIR}"
+	fi
 }
 
 run_one() {
@@ -264,15 +284,20 @@ run_one() {
 compare_streams() {
 	case_name=$1
 
-	if ! cmp -s "${CASE_DIR}/sys/run.exit" "${CASE_DIR}/ours/run.exit"; then
+	if [ ! -f "${REF_CASE_DIR}/run.exit" ] || [ ! -f "${REF_CASE_DIR}/run.stdout" ] || [ ! -f "${REF_CASE_DIR}/run.stderr" ]; then
+		append_case_failure "reference streams missing"
+		return
+	fi
+
+	if ! cmp -s "${REF_CASE_DIR}/run.exit" "${RUN_DIR}/run.exit"; then
 		append_case_failure "exit status differs"
 	fi
 
-	if ! cmp -s "${CASE_DIR}/sys/run.stdout" "${CASE_DIR}/ours/run.stdout"; then
+	if ! cmp -s "${REF_CASE_DIR}/run.stdout" "${RUN_DIR}/run.stdout"; then
 		append_case_failure "stdout differs"
 	fi
 
-	if ! cmp -s "${CASE_DIR}/sys/run.stderr" "${CASE_DIR}/ours/run.stderr"; then
+	if ! cmp -s "${REF_CASE_DIR}/run.stderr" "${RUN_DIR}/run.stderr"; then
 		append_case_failure "stderr differs"
 	fi
 
@@ -283,12 +308,12 @@ compare_file_exact() {
 	case_name=$1
 	rel=$2
 
-	if [ ! -e "${CASE_DIR}/sys/${rel}" ] || [ ! -e "${CASE_DIR}/ours/${rel}" ]; then
+	if [ ! -e "${REF_CASE_DIR}/${rel}" ] || [ ! -e "${RUN_DIR}/${rel}" ]; then
 		append_case_failure "expected file missing: ${rel}"
 		return
 	fi
 
-	if ! cmp -s "${CASE_DIR}/sys/${rel}" "${CASE_DIR}/ours/${rel}"; then
+	if ! cmp -s "${REF_CASE_DIR}/${rel}" "${RUN_DIR}/${rel}"; then
 		append_case_failure "file differs: ${rel}"
 	fi
 
@@ -299,24 +324,7 @@ compare_file_xmlnorm() {
 	case_name=$1
 	rel=$2
 
-	if [ ! -e "${CASE_DIR}/sys/${rel}" ] || [ ! -e "${CASE_DIR}/ours/${rel}" ]; then
-		append_case_failure "expected file missing: ${rel}"
-		return
-	fi
-
-	if ! "${SYS}" -convert xml1 -o "${CASE_DIR}/sys/normalized.xml" "${CASE_DIR}/sys/${rel}" >/dev/null 2>&1; then
-		append_case_failure "system output not normalizable: ${rel}"
-		return
-	fi
-
-	if ! "${SYS}" -convert xml1 -o "${CASE_DIR}/ours/normalized.xml" "${CASE_DIR}/ours/${rel}" >/dev/null 2>&1; then
-		append_case_failure "our output not normalizable: ${rel}"
-		return
-	fi
-
-	if ! cmp -s "${CASE_DIR}/sys/normalized.xml" "${CASE_DIR}/ours/normalized.xml"; then
-		append_case_failure "normalized file differs: ${rel}"
-	fi
+	compare_file_exact "${case_name}" "${rel}"
 
 	:
 }
@@ -324,11 +332,27 @@ compare_file_xmlnorm() {
 finish_case() {
 	case_name=$1
 
+	if [ "${GENERATE_REFERENCE}" = "1" ]; then
+		record_pass
+		return
+	fi
+
 	if [ -n "${CASE_FAILURES}" ]; then
 		record_fail "${case_name}" "${CASE_FAILURES}"
 	else
 		record_pass
 	fi
+}
+
+write_reference_streams() {
+	cp "${RUN_DIR}/run.stdout" "${REF_CASE_DIR}/run.stdout"
+	cp "${RUN_DIR}/run.stderr" "${REF_CASE_DIR}/run.stderr"
+	cp "${RUN_DIR}/run.exit" "${REF_CASE_DIR}/run.exit"
+}
+
+write_reference_file() {
+	rel=$1
+	cp "${RUN_DIR}/${rel}" "${REF_CASE_DIR}/${rel}"
 }
 
 case_stream() {
@@ -342,9 +366,14 @@ case_stream() {
 		stdin_abs="${FIX}/${stdin_rel}"
 	fi
 
-	run_one "${SYS}" "${CASE_DIR}/sys" "${CASE_DIR}/sys/run" "${stdin_abs}" "$@"
-	run_one "${OURS}" "${CASE_DIR}/ours" "${CASE_DIR}/ours/run" "${stdin_abs}" "$@"
-	compare_streams "${case_name}"
+	if [ "${GENERATE_REFERENCE}" = "1" ]; then
+		run_one "${SOURCE}" "${RUN_DIR}" "${RUN_DIR}/run" "${stdin_abs}" "$@"
+		write_reference_streams
+	else
+		run_one "${OURS}" "${RUN_DIR}" "${RUN_DIR}/run" "${stdin_abs}" "$@"
+		compare_streams "${case_name}"
+	fi
+
 	finish_case "${case_name}"
 }
 
@@ -360,13 +389,19 @@ case_stream_and_exact_files() {
 		stdin_abs="${FIX}/${stdin_rel}"
 	fi
 
-	run_one "${SYS}" "${CASE_DIR}/sys" "${CASE_DIR}/sys/run" "${stdin_abs}" "$@"
-	run_one "${OURS}" "${CASE_DIR}/ours" "${CASE_DIR}/ours/run" "${stdin_abs}" "$@"
-	compare_streams "${case_name}"
-
-	for rel in ${filespec}; do
-		compare_file_exact "${case_name}" "${rel}"
-	done
+	if [ "${GENERATE_REFERENCE}" = "1" ]; then
+		run_one "${SOURCE}" "${RUN_DIR}" "${RUN_DIR}/run" "${stdin_abs}" "$@"
+		write_reference_streams
+		for rel in ${filespec}; do
+			write_reference_file "${rel}"
+		done
+	else
+		run_one "${OURS}" "${RUN_DIR}" "${RUN_DIR}/run" "${stdin_abs}" "$@"
+		compare_streams "${case_name}"
+		for rel in ${filespec}; do
+			compare_file_exact "${case_name}" "${rel}"
+		done
+	fi
 
 	finish_case "${case_name}"
 }
@@ -383,13 +418,19 @@ case_stream_and_xml_files() {
 		stdin_abs="${FIX}/${stdin_rel}"
 	fi
 
-	run_one "${SYS}" "${CASE_DIR}/sys" "${CASE_DIR}/sys/run" "${stdin_abs}" "$@"
-	run_one "${OURS}" "${CASE_DIR}/ours" "${CASE_DIR}/ours/run" "${stdin_abs}" "$@"
-	compare_streams "${case_name}"
-
-	for rel in ${filespec}; do
-		compare_file_xmlnorm "${case_name}" "${rel}"
-	done
+	if [ "${GENERATE_REFERENCE}" = "1" ]; then
+		run_one "${SOURCE}" "${RUN_DIR}" "${RUN_DIR}/run" "${stdin_abs}" "$@"
+		write_reference_streams
+		for rel in ${filespec}; do
+			write_reference_file "${rel}"
+		done
+	else
+		run_one "${OURS}" "${RUN_DIR}" "${RUN_DIR}/run" "${stdin_abs}" "$@"
+		compare_streams "${case_name}"
+		for rel in ${filespec}; do
+			compare_file_xmlnorm "${case_name}" "${rel}"
+		done
+	fi
 
 	finish_case "${case_name}"
 }

@@ -1,0 +1,4 @@
+{
+  "CFBundleIdentifier" => "local.test.dylib"
+  "CFBundleName" => "DylibProbe"
+}

@@ -8,7 +8,7 @@ Minimal target has not been tested yet, but should at least supporting Darwin 19
 
 ### TODO
 
-- [ ] `pl`
+- [x] `pl`
 - [x] `plutil`
 - [ ] `defaults`
 - [ ] Foundation-less port or GNUstep port for non-Darwin systems

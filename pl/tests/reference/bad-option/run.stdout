@@ -1,0 +1,4 @@
+pl {-input <file>} {-output <file>}
+	Reads ASCII PL from stdin (or file if -input specified)
+	and writes ASCII PL to stdout (or file if -output)
+	NOTE: binary serialization is no longer supported

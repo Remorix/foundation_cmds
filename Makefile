@@ -1,4 +1,4 @@
-SUBDIRS=	plutil
+SUBDIRS=	pl plutil
 
 .PHONY: all check clean show-config
 

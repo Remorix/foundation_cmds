@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>count</key>
+	<integer>42</integer>
+	<key>flag</key>
+	<true/>
+	<key>items</key>
+	<array>
+		<string>head</string>
+		<dict>
+			<key>sub</key>
+			<string>value</string>
+		</dict>
+		<integer>5</integer>
+	</array>
+	<key>name</key>
+	<string>Alice "Q" \\ slash</string>
+	<key>nested</key>
+	<dict>
+		<key>a.b</key>
+		<string>dot</string>
+		<key>compound</key>
+		<array>
+			<string>x</string>
+		</array>
+		<key>k</key>
+		<string>v</string>
+		<key>list</key>
+		<array>
+			<string>x</string>
+			<integer>7</integer>
+			<false/>
+		</array>
+	</dict>
+	<key>ratio</key>
+	<real>3.25</real>
+</dict>
+</plist>

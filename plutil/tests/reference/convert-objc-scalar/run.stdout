@@ -1,0 +1,6 @@
+#import "-.h"
+
+/// Generated from scalar-string.plist
+__attribute__((visibility("hidden")))
+NSString * const scalar_string = @"Line1
+Line2 \"quote\" \\ slash";
