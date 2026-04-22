@@ -10,7 +10,7 @@ Minimal target has not been tested yet, but should at least supporting Darwin 19
 
 - [x] `pl`
 - [x] `plutil`
-- [ ] `defaults`
+- [x] `defaults`
 - [ ] Foundation-less port or GNUstep port for non-Darwin systems
 
 ### `/usr/libexec/PlistBuddy`?
